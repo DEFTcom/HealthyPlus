@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+# Replace localhost with the production domain before publishing.
