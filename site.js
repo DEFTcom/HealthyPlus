@@ -53,4 +53,90 @@
     if (index > 3) image.loading = 'lazy';
     image.decoding = 'async';
   });
+
+  const storyTrack = document.querySelector('#storyTrack');
+  if (storyTrack) {
+    const storyCount = 16;
+    storyTrack.innerHTML = Array.from({ length: storyCount }, (_, index) => {
+      const number = String(index + 1).padStart(2, '0');
+      return `
+        <article class="story-card">
+          <div class="story-media">
+            <video preload="none" playsinline poster="customer-stories/story-${number}.jpg" aria-label="HealthyPlus community story ${number}"></video>
+            <button class="story-play" type="button" data-video="customer-stories/story-${number}.mp4" aria-label="Play HealthyPlus community story ${number}"><span>▶</span></button>
+            <i class="story-number">${number} / ${storyCount}</i>
+          </div>
+          <div class="story-meta"><p>COMMUNITY STORY</p><span>In their own words</span></div>
+        </article>`;
+    }).join('');
+
+    const storiesSection = storyTrack.closest('.stories');
+    const prevButton = storiesSection.querySelector('.story-prev');
+    const nextButton = storiesSection.querySelector('.story-next');
+    const step = () => {
+      const card = storyTrack.querySelector('.story-card');
+      return card ? card.getBoundingClientRect().width + 22 : 340;
+    };
+    const move = (direction) => storyTrack.scrollBy({ left: direction * step(), behavior: 'smooth' });
+    prevButton.addEventListener('click', () => move(-1));
+    nextButton.addEventListener('click', () => move(1));
+
+    let carouselPaused = false;
+    let carouselTimer;
+    const stopAutoMove = () => {
+      carouselPaused = true;
+      storiesSection.classList.add('is-paused');
+      clearInterval(carouselTimer);
+    };
+    const startAutoMove = () => {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      carouselPaused = false;
+      storiesSection.classList.remove('is-paused');
+      clearInterval(carouselTimer);
+      carouselTimer = setInterval(() => {
+        const atEnd = storyTrack.scrollLeft + storyTrack.clientWidth >= storyTrack.scrollWidth - 12;
+        storyTrack.scrollTo({ left: atEnd ? 0 : storyTrack.scrollLeft + step(), behavior: 'smooth' });
+      }, 4800);
+    };
+
+    storiesSection.addEventListener('mouseenter', stopAutoMove);
+    storiesSection.addEventListener('mouseleave', () => {
+      const anyVideoPlaying = Array.from(storyTrack.querySelectorAll('video')).some((video) => !video.paused);
+      if (!anyVideoPlaying) startAutoMove();
+    });
+    storyTrack.addEventListener('pointerdown', stopAutoMove, { passive: true });
+    storyTrack.addEventListener('focusin', stopAutoMove);
+
+    storyTrack.querySelectorAll('.story-play').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const video = button.previousElementSibling;
+        storyTrack.querySelectorAll('video').forEach((other) => {
+          if (other !== video) other.pause();
+        });
+        storyTrack.querySelectorAll('.story-play').forEach((other) => other.classList.remove('is-hidden'));
+        stopAutoMove();
+        if (!video.src) {
+          video.src = button.dataset.video;
+          video.controls = true;
+          video.load();
+        }
+        try {
+          await video.play();
+          button.classList.add('is-hidden');
+        } catch {
+          button.classList.remove('is-hidden');
+        }
+      });
+    });
+    storyTrack.querySelectorAll('video').forEach((video) => {
+      video.addEventListener('ended', () => {
+        video.nextElementSibling.classList.remove('is-hidden');
+        startAutoMove();
+      });
+      video.addEventListener('pause', () => {
+        if (!video.ended) video.nextElementSibling.classList.remove('is-hidden');
+      });
+    });
+    startAutoMove();
+  }
 })();
