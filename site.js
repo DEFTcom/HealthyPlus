@@ -62,6 +62,7 @@
       return `
         <article class="story-card">
           <div class="story-media">
+            <img class="story-poster" src="customer-stories/story-${number}.jpg" alt="Preview of HealthyPlus community story ${number}" loading="${index < 3 ? 'eager' : 'lazy'}">
             <video preload="none" playsinline poster="customer-stories/story-${number}.jpg" aria-label="HealthyPlus community story ${number}"></video>
             <button class="story-play" type="button" data-video="customer-stories/story-${number}.mp4" aria-label="Play HealthyPlus community story ${number}"><span>▶</span></button>
             <i class="story-number">${number} / ${storyCount}</i>
@@ -71,6 +72,10 @@
     }).join('');
 
     const storiesSection = storyTrack.closest('.stories');
+    const formulaSection = document.querySelector('.formula-lab');
+    if (formulaSection && storiesSection.nextElementSibling !== formulaSection) {
+      formulaSection.parentNode.insertBefore(storiesSection, formulaSection);
+    }
     const prevButton = storiesSection.querySelector('.story-prev');
     const nextButton = storiesSection.querySelector('.story-next');
     const step = () => {
@@ -122,14 +127,17 @@
         }
         try {
           await video.play();
+          button.closest('.story-media').classList.add('is-playing');
           button.classList.add('is-hidden');
         } catch {
+          button.closest('.story-media').classList.remove('is-playing');
           button.classList.remove('is-hidden');
         }
       });
     });
     storyTrack.querySelectorAll('video').forEach((video) => {
       video.addEventListener('ended', () => {
+        video.closest('.story-media').classList.remove('is-playing');
         video.nextElementSibling.classList.remove('is-hidden');
         startAutoMove();
       });
